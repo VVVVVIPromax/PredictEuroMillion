@@ -67,7 +67,7 @@ def train_model_worker(args):
     pass
 
 def train_models_in_parallel():
-    """(Rewritten) Uses parallel processing to train all 6 independent dual-output models simultaneously."""
+    """ Uses parallel processing to train all 6 independent dual-output models simultaneously."""
     # --- TOP SECRET: Proprietary code removed ---
     # The specific architecture of the 6 models (which columns they predict)
     # and the parallel execution logic have been removed to protect the core strategy.
