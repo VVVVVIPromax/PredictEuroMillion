@@ -1,0 +1,143 @@
+import numpy as np
+import pandas as pd
+import os
+import concurrent.futures
+import joblib
+from sklearn.multioutput import MultiOutputRegressor
+from xgboost import XGBRegressor
+
+# --- Configuration ---
+DATA_FILE = "EuroHistory.csv"
+MAX_HISTORY_SIZE = 3000
+NUMBER_COLUMNS = ["A", "B", "C", "D", "E", "F", "G"]
+LOOK_BACK = 200
+MODEL_DIR = "xgboost_ensemble_models" # Create a dedicated folder for the new strategy
+
+# --- Global Variables ---
+history_data = []
+# models is now a dictionary to store the 6 different models
+models = {}
+
+# --- Data Processing Functions ---
+
+def load_history():
+    """Loads historical data from the CSV file and sorts the numbers within each draw."""
+    global history_data
+    if os.path.exists(DATA_FILE):
+        try:
+            df = pd.read_csv(DATA_FILE, usecols=NUMBER_COLUMNS)
+            # To ensure a stable learning target for the model, we sort the main numbers and lucky stars internally
+            # Note: This data processing method is different from a 'ball-by-ball' prediction strategy
+            df.iloc[:, :5] = np.sort(df.iloc[:, :5].values, axis=1)
+            df.iloc[:, 5:] = np.sort(df.iloc[:, 5:].values, axis=1)
+            history_data = df.values.tolist()
+            print(f"Loaded {len(history_data)} historical draws from '{DATA_FILE}'.")
+        except Exception as e:
+            print(f"Error loading '{DATA_FILE}': {e}")
+            history_data = []
+    else:
+        print(f"File '{DATA_FILE}' not found.")
+        history_data = []
+
+def save_history():
+    """Saves the current historical data to the CSV file."""
+    df = pd.DataFrame(history_data, columns=NUMBER_COLUMNS)
+    df.iloc[:, :5] = np.sort(df.iloc[:, :5].values, axis=1)
+    df.iloc[:, 5:] = np.sort(df.iloc[:, 5:].values, axis=1)
+    df.to_csv(DATA_FILE, index=False)
+    print(f"Historical data has been saved to '{DATA_FILE}'.")
+
+def create_dataset(dataset, look_back=1):
+    """Creates a dataset for the multi-output model."""
+    dataX, dataY = [], []
+    for i in range(len(dataset) - look_back):
+        past_draws = dataset[i:(i + look_back)]
+        flattened_x = [item for sublist in past_draws for item in sublist]
+        dataX.append(flattened_x)
+        dataY.append(dataset[i + look_back])
+    return np.array(dataX), np.array(dataY)
+
+# --- Model Training Core ---
+
+def train_model_worker(args):
+    """(Worker function) Responsible for training a single dual-output model."""
+    # --- TOP SECRET: Proprietary code removed ---
+    # The detailed logic for defining the XGBoost estimator,
+    # handling incremental training, and fitting the model has been removed.
+    pass
+
+def train_models_in_parallel():
+    """(Rewritten) Uses parallel processing to train all 6 independent dual-output models simultaneously."""
+    # --- TOP SECRET: Proprietary code removed ---
+    # The specific architecture of the 6 models (which columns they predict)
+    # and the parallel execution logic have been removed to protect the core strategy.
+    # In a real run, this function would populate the global 'models' dictionary.
+    print("Preparing to train models (core logic hidden)...")
+    if len(history_data) > LOOK_BACK:
+         print("All models trained successfully (demonstration).")
+         return True # Return a dummy value to allow the program to continue for demonstration.
+    else:
+         print(f"Insufficient historical data. At least {LOOK_BACK + 1} draws are required.")
+         return False
+
+
+# --- Prediction and Main Flow ---
+def generate_numbers():
+    """(Rewritten) Uses the 6 models to make predictions and applies a consensus decision for overlapping parts."""
+    # --- TOP SECRET: Proprietary code removed ---
+    # The core algorithm for combining predictions from the six models
+    # into a final consensus, including the post-processing and fallback
+    # mechanisms, has been removed.
+    
+    # Returning dummy data for demonstration purposes.
+    print("Generating numbers (core logic hidden)...")
+    predicted_main = [1, 2, 3, 4, 5]
+    predicted_stars = [6, 7]
+    return predicted_main, predicted_stars
+
+def main():
+    """Main program execution flow."""
+    load_history()
+    
+    if not train_models_in_parallel():
+        print("Model training failed. Terminating program.")
+        return
+    
+    predicted_main, predicted_stars = generate_numbers()
+    
+    if predicted_main is None:
+        print("Could not generate predictions.")
+        return
+
+    print("\n--- XGBoost Ensemble Prediction Results (Demonstration) ---")
+    print(f"Predicted Main Numbers (sorted): {predicted_main}")
+    print(f"Predicted Lucky Stars (sorted): {predicted_stars}")
+    print("-----------------------------------------\n")
+    
+    while True:
+        try:
+            true_result_str = input("Please enter the actual draw results (5 Main Numbers, 2 Lucky Stars, separated by spaces): ")
+            true_result = list(map(int, true_result_str.split()))
+            if len(true_result) != 7: continue
+            break
+        except ValueError:
+            print("Invalid input. Please ensure you enter numbers separated by spaces.")
+
+    true_main = sorted(true_result[:5])
+    true_stars = sorted(true_result[5:])
+    
+    main_matches = len(set(predicted_main).intersection(set(true_main)))
+    star_matches = len(set(predicted_stars).intersection(set(true_stars)))
+    
+    print("\n--- Prediction Hit Count for This Draw ---")
+    print(f"Main Numbers matched: {main_matches} / 5")
+    print(f"Lucky Stars matched: {star_matches} / 2")
+    
+    history_data.append(true_result)
+    if len(history_data) > MAX_HISTORY_SIZE:
+        history_data.pop(0)
+    save_history()
+
+# --- Program Entry Point ---
+if __name__ == "__main__":
+    main()
